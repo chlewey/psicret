@@ -1,0 +1,33 @@
+\NeedsTeXFormat{LaTeX2e}[1994/06/01]
+\ProvidesPackage{custom}[2013/01/13 Custom Package]
+
+\RequirePackage{ifxetex}
+
+\ifxetex
+  \RequirePackage{fontspec}
+  \setmainfont[Ligatures=TeX]{Linux Libertine O}
+  \setsansfont[Ligatures=TeX]{Linux Biolinum O}
+\else
+  \RequirePackage[T1]{fontenc}
+  \RequirePackage[utf8]{inputenc}
+  \RequirePackage{tipa}
+  \RequirePackage{newunicodechar}
+  \newunicodechar{ɾ}{\textfishhookr}
+\fi
+
+\RequirePackage[greek,spanish]{babel}
+
+\newcommand{\GR}[1]{\foreignlanguage{greek}{#1}}
+
+\ifxetex
+  \newcommand{\xIPA}[1]{\mbox{\textsf{/#1/}}}
+\else
+  \newcommand{\xIPA}[1]{\textsf{\textipa{/#1/}}}
+\fi
+
+\RequirePackage{verbatim}
+
+\newcommand*\psicret{\texttt{psicret}}
+
+
+\endinput

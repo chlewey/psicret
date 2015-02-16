@@ -1,0 +1,162 @@
+\documentclass[letterpaper]{article}
+\usepackage{psicret}
+\title{\psicret~User Manual}
+\author{Chlewey}
+\date{2015}
+\begin{document}
+\maketitle
+\begin{abstract}
+\psicret\ is a package that include a library and some few interfaces
+for making psychrometric calculations.
+The interaces include a command line interface, a graphical interface,
+and a web (\textsc{php}) interface.
+
+This manual focuses on the command line interface (CLI) and the library.
+\end{abstract}
+\tableofcontents
+\section{Introduction}
+\subsection{Psychrometrics}
+Psychrometrics or psychrometry or hygrometry are terms used to describe
+the field of engineering concerned with the determination of physical
+and thermodynamic properties of gas-vapor mixtures. The term derives
+from the Greek psuchron (\GR{ψυχρόν}) meaning ``cold'' and metron
+(\GR{μέτρον}) meaning ``means of measurement''.\footnote{%
+\textit{http://en.wikipedia.org/wiki/Psychrometrics}}
+\subsection{Psychrometric chart}
+A psychrometric chart is a graph of the thermodynamic parameters of
+moist air at a constant pressure, often equated to an elevation relative
+to sea level. The \ashrae-style psychrometric chart was pioneered by
+Willis Carrier in 1904. It depicts these parameters and is thus a
+graphical equation of state.
+
+The ``\mollier'' (Enthalpy - Humidity Mixing Ratio) diagram,
+developed by Richard Mollier in 1923, is an alternative psychrometric
+chart, preferred by many users in Scandinavia, Eastern Europe, and
+Russia.
+\section{The library}
+\section{The command line}
+\subsection{Text output}
+\begin{clioptions}
+\clioption[m]{si} Uses international metric system (SI or metric) for
+  input and output units. This is the default.
+\clioption[e]{english} Uses imperial/English units for input and output.
+\clioption[p]{pressure}[pres] Sets the pressure in kilopascal or psi.
+  a letter suffix might change the default unit:
+  \texttt{kpa} kilopascal, \texttt{pa} pascal, \texttt{bar}, \texttt{atm}
+  atmosphere, \texttt{tor} torr, \texttt{hg} or \texttt{mmhg} millimeter
+  of mercury, \texttt{psi} pounds per square inch.
+\clioption[h]{elevation}[height] Sets the elevation in meters or feet
+  above sea level. It can accept a unit suffix including \texttt{m} meter,
+  \texttt{ft} feet.
+
+If both elevation and pressure parameters are given, it makes calculations
+using pressure. (For graphical output both parameters will show in the
+chart, but calculations are made using pressure.)
+
+If neither is provided, it assumes sea level (1\,atm pressure).
+\clioption[t]{dbt}[temp] Sets the dry bulb temperature. Units are celcius
+  or farenheight degrees. Unit suffixes include \texttt{K} for Kelvin,
+  \texttt{C} for celcius and \texttt{F} for farenheight. suffixes are not
+  case-sensitive.
+\clioption[w]{wbt}[temp] Sets the wet bulb temperature.
+\clioption[p]{relative}[percentage] Sets the relative humidity.
+\clioption[d]{dpt}[temp] Sets the dew point temperature.
+\clioption[h]{humidity}[prop] Sets the specific humidity.
+\clioption[a]{absolute}[value] Sets the absolute humidity (water vapor density).
+\clioption[e]{entalpy}[value] Sets the specific entalpy.
+\clioption[v]{volume}[value] Sets the specific volume.
+\clioption[r]{ratio}[value] Sets the psychrometric ratio.
+\clioption{heat}[value] Sets the humid heat.
+\clioption{lang}[language] Sets the output language. Default is English.
+  \texttt{\textit{language}} is usually a two-letter code, which refers
+  to the file \texttt{bab-\textit{language}.dic} in the program path
+  with translations of the different terms and units.
+\end{clioptions}
+
+When a text output is required, two parameters should be provided aside
+pressure/elevation.
+
+\subsection{Graphical output}
+The command line interface can create an \ashrae-style or a \mollier\ 
+psychrometric chart for a given air preasure (or height), either empty
+or with a marked point.
+
+If one variable (aside pressure/elevetion) is provided, the chart will
+highlight that respective line.
+
+If two variables (aside pressure/elevetion) are provided, the chart will
+mark the specific point, highlight all relevant lines,
+and display all calculated variables in a table.
+
+The following parameters can be used (this settings are for
+\ashrae-style charts in landscape mode, \mollier\ charts are in portrait
+mode and width and height are traspossed accordingly):
+
+\begin{clioptions}
+\clioption[V]{svg}[file] Outputs to \texttt{\textit{file}} (or
+  \texttt{\textit{file}.svg} if no extension provided) using scalable
+  vector graphics (\textsc{svg}) format.
+  If no further commands are issued, this will be a
+  $11\,\textrm{inch}\times21\,\textrm{cm}$ output with $2\,\textrm{cm}$
+  margins.
+\clioption{ps}[file] Outputs to \texttt{\textit{file}} (or
+  \texttt{\textit{file}.ps} if no extension provided) using postscript
+  format.
+  If no further commands are issued, this will be a
+  $11\,\textrm{inch}\times21\,\textrm{cm}$ output with $2\,\textrm{cm}$
+  margins.
+\clioption[R]{png}[file] Outputs to \texttt{\textit{file}} (or
+  \texttt{\textit{file}.png} if no extension provided) using portable
+  network graphics (\textsc{png}) format.
+  If no further commands are issued, this will be a
+  $800\times600$ pixels output with $2\,\textrm{cm}$
+  margins.
+\clioption[W]{width}[x] Set the width of the output file to
+  \texttt{\textit{x}} pixels or, if a twoletter unit code is set, to
+  that specific length. Default is 800 pixels for raster output
+  (\textsc{png}) or 11\,inch (-2\,cm margin at each side) for scalable
+  output.
+\clioption[H]{height}[y] Set the height of the output file to
+  \texttt{\textit{y}} pixels or, if a twoletter unit code is set, to
+  that specific length. Default is 600 pixels for raster output
+  (\textsc{png}) or 21\,cm (-2\,cm margin at each side) for scalable
+  output.
+\clioption[D]{dpi}[res] Sets the resolution in dots per inch.
+  Default is 90\,dpi\,.
+\clioption{dpm}[res] Sets the resolution in dots per meter.
+  Default is 3543.307087\,d/m\,.
+\clioption[M]{margin}[top,left,bottom,right] Sets the margins for the
+  output. The default is zero for raster and 2\,cm at each side for
+  scalable formats.
+  If no \texttt{\textit{right}} value is provided, it takes it equal to
+  \texttt{\textit{left}}. If \texttt{\textit{bottom}} is missing, it
+  takes it equal to \texttt{\textit{top}}. If \texttt{\textit{left}}
+  is missing, it takes it equal to \texttt{\textit{top}}.
+  
+  The default units are pixels. If only one of the parameters have a
+  twocode unit name, that unit is used for all other margins.
+  
+  Example: \texttt{-m 1,1.5cm,2} will set left and right margins to
+  1.5\,cm, the top margin to 1\,cm and the bottom margin to 2\,cm\,.
+\clioption[S]{size}[format] Sets the size for the output using a
+  keyword. Common keywords include:
+  \texttt{letter} for letter papersize ($11\,\textrm{inch}\times8.5\,\textrm{inch}$), 1\,inch margins.
+  \texttt{a4} for A4 papersize ($297\,\textrm{mm}\times210\,\textrm{mm}$), 25\,mm margins.
+  \texttt{b4} for B4 papersize ($353\,\textrm{mm}\times250\,\textrm{mm}$), 30\,mm margins.
+  \texttt{hd} for 1080p widescreen format ($1920\times1080$ pixels), no margins.
+  \texttt{vga} for VGA screen format ($640\times480$ pixels), no margins.
+  \texttt{default} for default format, according if it is a scalable or a raster format.
+\cliop A shorthand for \texttt{--size=a4}
+\cliop B shorthand for \texttt{--size=b4}
+\cliop L shorthand for \texttt{--size=letter}
+\clioption[T]{title}["the title"] Sets a title for the chart
+\clioption[n]{no-lines} Will not highlight the relevant lines if a point is given.
+\clioption[N]{no-table} Will not print the table of values if a point is given.
+\end{clioptions}
+\section{Graphical interface}
+\section{Web interface}
+\section{Installation}
+\section{License}
+The following is the text of the license by which this package is distributed.
+\verbatiminput{../LICENSE}
+\end{document}

@@ -1,0 +1,39 @@
+\NeedsTeXFormat{LaTeX2e}[1994/06/01]
+\ProvidesPackage{custom}[2013/01/13 Custom Package]
+
+\RequirePackage{ifxetex}
+
+\ifxetex
+  \RequirePackage{fontspec}
+  \setmainfont[Ligatures=TeX]{Linux Libertine O}
+  \setsansfont[Ligatures=TeX]{Linux Biolinum O}
+\else
+  \RequirePackage[T1]{fontenc}
+  \RequirePackage[utf8]{inputenc}
+  \RequirePackage{tipa}
+  \RequirePackage{newunicodechar}
+  \newunicodechar{ɾ}{\textfishhookr}
+\fi
+
+\RequirePackage[greek,spanish]{babel}
+
+\newcommand{\GR}[1]{\foreignlanguage{greek}{#1}}
+
+\ifxetex
+  \newcommand{\xIPA}[1]{\mbox{\textsf{/#1/}}}
+\else
+  \newcommand{\xIPA}[1]{\textsf{\textipa{/#1/}}}
+\fi
+
+\RequirePackage{verbatim}
+
+\newcommand*\psicret{\texttt{psicret}}
+\newcommand*\ashrae{\textsc{Ashrae}}
+\newcommand*\mollier{Mollier \ensuremath{i}-\ensuremath{x}}
+
+\newcommand\clioption[2][\@empty]{\def\@tempi{#2}\ifx\@empty#1\def\@tempii{}\else\def\@tempii{-#1}\fi\@clioption}
+\newcommand\@clioption[1][\@empty]{\item[\texttt{-{}-\@tempi\ifx\@empty#1\else=\textit{#1}\fi} \texttt{\@tempii}]}
+\newenvironment{clioptions}{\begin{list}{\clioption}{}}{\end{list}}
+\newcommand\cliop[1]{\item[\texttt{-#1}]}
+
+\endinput
