@@ -1,0 +1,17 @@
+[ashrae]
+title=Psychrometric Chart
+dbt=*dry *bulb *temperature
+wbt=*wet *bulb *temperature
+dpt=*dew *point *temperature
+rh=*relative *humidity
+omega=*humidity *ratio
+h=*entalpy
+
+[mollier]
+title=Mollier i-x Psychrometric Chart
+
+[units]
+kpa=kPa,kilopascal,kilopascal
+pa=Pa,pascal,pascal
+in=",inch,inches
+m=m,meter,meters

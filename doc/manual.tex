@@ -35,17 +35,34 @@ chart, preferred by many users in Scandinavia, Eastern Europe, and
 Russia.
 \section{The library}
 \section{The command line}
+The command line will accept a series of parameters. Parameters can be 
+in the form \texttt{-p}, \texttt{--param}, \texttt{-k val},
+\texttt{--key=value}, or \texttt{value}. Several parametes of the form
+\texttt{-p} can be grouped as \texttt{-pq} (meaning \texttt{-p -q}).
+
+The first non-marked parameter \texttt{value}, if numeric, will be
+interpreted as dry bulb temperature, or as some other point parameter
+if followed by a unit suffix.
+
+The second non-marked parameter \texttt{value}, if also numeric, will
+be interpreted as relative humidity (in percentage), or as some other
+point parameter if followed by a unix suffix.
+
+Non numeric non-marked parameters will concatenate as a chart title.
+
+If a point is parametrized, the output 
+
 \subsection{Text output}
 \begin{clioptions}
 \clioption[m]{si} Uses international metric system (SI or metric) for
   input and output units. This is the default.
-\clioption[e]{english} Uses imperial/English units for input and output.
-\clioption[p]{pressure}[pres] Sets the pressure in kilopascal or psi.
+\clioption[i]{english} Uses imperial/English units for input and output.
+\clioption[P]{pressure}[pres] Sets the pressure in kilopascal or psi.
   a letter suffix might change the default unit:
   \texttt{kpa} kilopascal, \texttt{pa} pascal, \texttt{bar}, \texttt{atm}
   atmosphere, \texttt{tor} torr, \texttt{hg} or \texttt{mmhg} millimeter
   of mercury, \texttt{psi} pounds per square inch.
-\clioption[h]{elevation}[height] Sets the elevation in meters or feet
+\clioption[E]{elevation}[height] Sets the elevation in meters or feet
   above sea level. It can accept a unit suffix including \texttt{m} meter,
   \texttt{ft} feet.
 
@@ -71,6 +88,8 @@ If neither is provided, it assumes sea level (1\,atm pressure).
   \texttt{\textit{language}} is usually a two-letter code, which refers
   to the file \texttt{bab-\textit{language}.dic} in the program path
   with translations of the different terms and units.
+\clioption[?]{help} displays a basic help.
+\clioption{version} displays the version of the program.
 \end{clioptions}
 
 When a text output is required, two parameters should be provided aside
@@ -93,6 +112,8 @@ The following parameters can be used (this settings are for
 mode and width and height are traspossed accordingly):
 
 \begin{clioptions}
+\clioption[o]{svg}[file.ext] Outputs to \texttt{\textit{file.ext}} and
+  deduce format from \texttt{\textit{ext}}.
 \clioption[V]{svg}[file] Outputs to \texttt{\textit{file}} (or
   \texttt{\textit{file}.svg} if no extension provided) using scalable
   vector graphics (\textsc{svg}) format.
@@ -146,12 +167,62 @@ mode and width and height are traspossed accordingly):
   \texttt{hd} for 1080p widescreen format ($1920\times1080$ pixels), no margins.
   \texttt{vga} for VGA screen format ($640\times480$ pixels), no margins.
   \texttt{default} for default format, according if it is a scalable or a raster format.
+  Other formats can be defined by creating a file \texttt{fmt-\textit{format}.par}. This file cointains
+  parameters for both raster and scalable output formats.
+  If the local directory or program path contains a \texttt{fmt-custom.par}
+  file, that will override the default behavior.
 \cliop A shorthand for \texttt{--size=a4}
 \cliop B shorthand for \texttt{--size=b4}
 \cliop L shorthand for \texttt{--size=letter}
+\clioption[c]{color} Lines are drawed using different colors. Default.
+\clioption{color}[scheme] Lines and background are drawed using different colors using a scheme defined
+  by file \texttt{col-\textit{scheme}.sch}\,.
+\clioption[b]{bw} Lines are drawed in black over a white background, suitable for black and white printing.
+  This is equivalent to \texttt{--color=bw}\,.
 \clioption[T]{title}["the title"] Sets a title for the chart
 \clioption[n]{no-lines} Will not highlight the relevant lines if a point is given.
 \clioption[N]{no-table} Will not print the table of values if a point is given.
+\clioption[q]{quiet} Will not print a table if a point is parametrized.
+\end{clioptions}
+\subsection{Alphabetical list of options}
+\begin{clioptions}
+\clioption[a]{absolute}[value] Sets the absolute humidity (water vapor density).
+\cliop A shorthand for \texttt{--size=a4}
+\clioption[b]{bw} Lines are drawed in black over a white background.
+\cliop B shorthand for \texttt{--size=b4}
+\clioption[c]{color} Lines are drawed using different colors. Default.
+\clioption[d]{dpt}[temp] Sets the dew point temperature.
+\clioption[D]{dpi}[res] Sets the resolution in dots per inch.
+\clioption{dpm}[res] Sets the resolution in dots per meter.
+  Default is 3543.307087\,d/m\,.
+\clioption[e]{entalpy}[value] Sets the specific entalpy.
+\clioption[E]{elevation}[height] Sets the elevation.
+\clioption[h]{humidity}[prop] Sets the specific humidity.
+\clioption[H]{height}[y] Set the height of the output file to \texttt{\textit{y}}\,.
+\clioption{heat}[value] Sets the humid heat.
+\clioption[i]{english} Uses imperial/English units.
+\cliop L shorthand for \texttt{--size=letter}
+\clioption{lang}[language] Sets the output language.
+\clioption[m]{si} Uses international metric system (SI or metric).
+\clioption[M]{margin}[top,left,bottom,right] Sets the margins.
+\clioption[n]{no-lines} Will not highlight the relevant lines if a point is given.
+\clioption[N]{no-table} Will not print the table of values if a point is given.
+\clioption[o]{svg}[file.ext] Outputs to \texttt{\textit{file.ext}}\,.
+\clioption[p]{relative}[percentage] Sets the relative humidity.
+\clioption[P]{pressure}[pres] Sets the pressure.
+\clioption{ps}[file] Outputs to \texttt{\textit{file}.ps}\,.
+\clioption[q]{quiet} Will not print a table if a point is parametrized.
+\clioption[r]{ratio}[value] Sets the psychrometric ratio.
+\clioption[R]{png}[file] Outputs to \texttt{\textit{file}.png}\,.
+\clioption[S]{size}[format] Sets the size for the output using a keyword.
+\clioption[t]{dbt}[temp] Sets the dry bulb temperature.
+\clioption[T]{title}["the title"] Sets a title for the chart
+\clioption[v]{volume}[value] Sets the specific volume.
+\clioption[V]{svg}[file] Outputs to \texttt{\textit{file}.svg}\,.
+\clioption{version} displays the version of the program.
+\clioption[w]{wbt}[temp] Sets the wet bulb temperature.
+\clioption[W]{width}[x] Set the width of the output file to \texttt{\textit{x}}\,.
+\clioption[?]{help} displays a basic help.
 \end{clioptions}
 \section{Graphical interface}
 \section{Web interface}

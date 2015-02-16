@@ -1,0 +1,12 @@
+[raster]
+width=800
+height=600
+margins=0
+
+[vector]
+width=11in
+height=21cm
+margins=2cm
+
+[common]
+dpi=90

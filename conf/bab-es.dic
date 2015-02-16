@@ -1,0 +1,17 @@
+[ashrae]
+title=Carta psicométrica
+dbt=*temperatura de bulbo seco
+wbt=*temperatura de bulbo húmedo
+dpt=*temperatura de punto de rocío
+rh=*humedad relativa
+omega=*razón de humedad
+h=*entalpía
+
+[mollier]
+title=Carta psicométrica de Mollier i-x
+
+[units]
+kpa=kPa,kilopascal,kilopascales
+pa=Pa,pascal,pascales
+in=",pulgada,pulgadas
+m=m,metro,metros

@@ -32,8 +32,8 @@
 \newcommand*\mollier{Mollier \ensuremath{i}-\ensuremath{x}}
 
 \newcommand\clioption[2][\@empty]{\def\@tempi{#2}\ifx\@empty#1\def\@tempii{}\else\def\@tempii{-#1}\fi\@clioption}
-\newcommand\@clioption[1][\@empty]{\item[\texttt{-{}-\@tempi\ifx\@empty#1\else=\textit{#1}\fi} \texttt{\@tempii}]}
+\newcommand\@clioption[1][\@empty]{\item[\texttt{\makebox[2em][l]{\texttt{\@tempii}}-{}-\@tempi\ifx\@empty#1\else=\textit{#1}\fi}]}
 \newenvironment{clioptions}{\begin{list}{\clioption}{}}{\end{list}}
-\newcommand\cliop[1]{\item[\texttt{-#1}]}
+\newcommand\cliop[1]{\item[\texttt{\makebox[2em][l]{-#1{}}}]}
 
 \endinput
