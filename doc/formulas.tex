@@ -1,0 +1,242 @@
+\documentclass[letterpaper]{article}
+\usepackage{psiform}
+\newcommand*\Tdb{\ensuremath{T\sub{db}}}
+\newcommand*\Twb{\ensuremath{T\sub{wb}}}
+\newcommand*\Tdp{\ensuremath{T\sub{dp}}}
+\newcommand*\Pw{\ensuremath{P\sub{w}}}
+\newcommand*\Pws{\ensuremath{P\sub{ws}}}
+\newcommand*\RH{\ensuremath{w\sub{RH}}}
+\newcommand*\Rda{\ensuremath{\rho\sub{da}}}
+\title{Análisis de funciones del programa \texttt{psychropy}}
+\author{Chlewey}
+\date{2015}
+\begin{document}
+\maketitle
+\begin{abstract}
+aaa
+\end{abstract}
+\tableofcontents
+\section{Fórmulas de \texttt{psychropy}}
+
+\subsection{\funcname{Part\_press}[P,W]}
+\noindent Parámetros:
+\vardef{P}presión ambiental [kPa]
+\vardef{W}humedad específica [kg/kg dry air]
+\\Salida:
+\vardef{\Pw}presión parcial del vapor [kPa]
+\ashref, page 6.9 equation 38
+
+\begin{equation}
+\Pw=\frac{P\cdot W}{0.62198 + W}
+\end{equation}
+
+
+\subsection{\funcname{Sat\_press}[\Tdb]}
+\noindent Parámetros:
+\vardef{\Tdb}temperatura de bulbo seco [\degC] (válido entre -100\degC\ y 200\degC)
+\\Salida:
+\vardef{\Pws}presión parcial del vapor [kPa]
+\ashref, p 6.2, equation 5 and 6
+
+\begin{equation}
+    T = \Tdb + 273.15                     %# Converts from degC to degK
+\end{equation}    
+Si $\Tdb\le 0$:
+\begin{align}
+  c_1 &= -5674.5359\\
+  c_2 &= 6.3925247\\
+  c_3 &= -0.009677843\\
+  c_4 &= 0.00000062215701\\
+  c_5 &= 2.0747825\times10^{-9}\\
+  c_6 &= -9.484024\times10^{-13}\\
+  c_7 &= 4.1635019\\
+  \Pws &= \frac1{1000}\left(\frac{c_1}{T_K} + c_2 + c_3T_K + c_4T_K^2 + c_5T_K^3 + c_6T_K^4 + c_7\ln{T_K}\right)
+\end{align}
+Si no:
+\begin{align}
+  c_8 &= -5800.2206\\
+  c_9 &= 1.3914993\\
+  c_{10} &= -0.048640239\\
+  c_{11} &= 0.000041764768\\
+  c_{12} &= -0.000000014452093\\
+  c_{13} &= 6.5459673\\
+  \Pws &= \frac1{1000}\left(\frac{c_8}{T_K} + c_9 + c_{10}T_K + c_{11}T_K^2 + c_{12}T_K^3 + c_{13}\ln{T_K}\right)
+\end{align}
+
+\subsection{\funcname{Hum\_rat}[\Tdb, \Twb, P]}
+\noindent Parámetros:
+\vardef{\Tdb}temperatura de bulbo seco [\degC]
+\vardef{\Twb}temperatura de bulbo humedo [\degC]
+\vardef{P}presión ambiental [kPa]
+\\Salida:
+\vardef{W}humedad específica [kg/kg dry air]
+\ashref.
+
+\begin{align}
+    \Pws &= \funcname{Sat\_press}[\Twb] \\
+    W\sub s &= \frac{0.62198 \cdot \Pws}{P - \Pws}          %# Equation 23, p6.8
+\end{align}
+Si $\Tdb\ge 0$:
+\begin{equation}
+W = \frac{(2501 - 2.326\Twb)W\sub s - 1.006(\Tdb - \Twb)}{2501 + 1.86\Tdb - 4.186\Twb}
+\end{equation}
+Si no:
+\begin{equation}
+W = \frac{(2830 - 0.24\Twb)W\sub s - 1.006(\Tdb - \Twb)}{2830 + 1.86\Tdb - 2.1\Twb}
+\end{equation}
+
+\subsection{\funcname{Hum\_rat2}[\Tdb, \RH, P]}
+\noindent Parámetros:
+\vardef{\Tdb}temperatura de bulbo seco [\degC]
+\vardef{\RH}humedad relativa [fracción o porcentaje]
+\vardef{P}presión ambiental [kPa]
+\\Salida:
+\vardef{W}humedad específica [kg/kg dry air]
+\ashref.
+
+\begin{align}
+    \Pws &= \funcname{Sat\_press}[\Tdb] \\
+    W &= \frac{0.62198\RH\cdot \Pws}{P - \RH\cdot \Pws}
+\end{align}
+
+\subsection{\funcname{Rel\_hum}[\Tdb, \Twb, P]}
+\noindent Parámetros:
+\vardef{\Tdb}temperatura de bulbo seco [\degC]
+\vardef{\Twb}temperatura de bulbo humedo [\degC]
+\vardef{P}presión ambiental [kPa]
+\\Salida:
+\vardef{\RH}humedad relativa [fracción o porcentaje]
+\ashref.
+
+\begin{align}
+    W &= \funcname{Hum\_rat}[\Tdb, \Twb, P] \\
+    \RH &= \frac{\funcname{Part\_press}[P, W]}{\funcname{Sat\_press}[\Tdb]}
+\end{align}
+
+
+\subsection{\funcname{Rel\_hum2}[Tdb, W, P]}
+\noindent Parámetros:
+\vardef{\Tdb}temperatura de bulbo seco [\degC]
+\vardef{W}humedad específica [kg/kg dry air]
+\vardef{P}presión ambiental [kPa]
+\\Salida:
+\vardef{\RH}humedad relativa [fracción o porcentaje]
+\ashref.
+
+\begin{align}
+    \Pw &= \funcname{Part\_press}[P, W]\\
+    \Pws &= \funcname{Sat\_press}[\Tdb]\\
+    \RH &= \frac{P_w}{\Pws}
+\end{align}
+
+
+\subsection{\funcname{Wet\_bulb}[\Tdb, \RH, P]}
+\noindent Parámetros:
+\vardef{\Tdb}temperatura de bulbo seco [\degC]
+\vardef{\RH}humedad relativa [fracción o porcentaje]
+\vardef{P}presión ambiental [kPa]
+\\Salida:
+\vardef{\Twb}temperatura de bulbo humedo [\degC]
+\\Se utiliza un método de iteración Newton-Rhapson para una rápida convergencia
+
+\begin{align}
+    W\sub{normal} &= \funcname{Hum\_rat2}[\Tdb, \RH, P] \\
+    i &= 0 \\
+    T\sub[0]{wb} &= \Tdb \\
+    W\sub[0]{new} &= \funcname{Hum\_rat}[\Tdb, {T\sub[0]{wb}}, P]
+\end{align}
+    
+Grado de presición del 0.001\% usando Newton-Rhapson:
+\\Mientras que $\left|\dfrac{W\sub[i]{new} - W\sub{normal}}{W\sub{normal}}\right| > 0.00001$:
+\begin{align}
+	i&=i+1\\
+    W\sub[2]{new} &= \funcname{Hum\_rat}[\Tdb, {T\sub[i-1]{wb} - 0.001}, P] \\
+    W' &= \frac{W\sub{new}-W\sub[2]{new}  }{0.001} \\
+    T\sub[i]{wb} &= T\sub[i-1]{wb} - \frac{W\sub[i-1]{new}-W\sub{normal}}{W'} \\
+    W\sub[i]{new} &= \funcname{Hum\_rat}[\Tdb, {T\sub[i]{wb}}, P]
+\end{align}
+Repite. Al final:
+\begin{equation}
+    \Twb = T\sub[i]{wb}
+\end{equation}
+
+
+\subsection{\funcname{Enthalpy\_Air\_H2O}[\Tdb, W]}
+\noindent Parámetros:
+\vardef{\Tdb}temperatura de bulbo seco [\degC]
+\vardef{W}humedad específica [kg/kg dry air]
+\\Salida:
+\vardef{h}entalpía [kJ/kg (aire seco)]
+\ashref, SI P6.9 eqn 32
+
+\begin{equation}
+    h = 1.006\Tdb + (2501 + 1.86\Tdb)W
+\end{equation}
+
+
+\subsection{\funcname{T\_drybulb\_calc}[h,W]}
+\noindent Parámetros:
+\vardef{h}entalpía [kJ/kg (aire seco)]
+\vardef{W}humedad específica [kg/kg dry air]
+\\Salida:
+\vardef{\Tdb}temperatura de bulbo seco [\degC]
+\\calculo inverso a la entalpía arriba.
+\\Nota, el estado 0 para imperial es $\sim0$\degF, 0\% de humedad relativa y 1\,atm\,.
+El estado 0 para SI es 0\degC, 0\% de humedad relativa y 1\,atm\,.
+
+\begin{equation}
+	\Tdb = \frac{h-2501W}{1.006+1.86W}
+\end{equation}
+    
+
+\subsection{\funcname{Dew\_point}[P, W]}
+\noindent Parámetros:
+\vardef{P}presión ambiental [kPa]
+\vardef{W}humedad específica [kg/kg dry air]
+\\Salida:
+\vardef{\Tdp}temperatura de punto de rocío [\degC]
+\ashref, page 6.9 equation 39 y 40
+\\Válido para punts de rocío inferiores a 93\degC
+
+\begin{align}
+    c_{14} &= 6.54 \\
+    c_{15} &= 14.526 \\
+    c_{16} &= 0.7389 \\
+    c_{17} &= 0.09486 \\
+    c_{18} &= 0.4569 \\
+    \Pw &= \funcname{Part\_press}[P, W] \\
+    \alpha &= \ln\Pw \\
+    T\sub[1]{dp} &= c_{14} + c_{15}\alpha + c_{16}\alpha^2 + c_{17}\alpha^3 + c_{18}\Pw^{0.1984} \\
+    T\sub[2]{dp} &= 6.09 + 12.608\alpha + 0.4959\alpha^2
+\end{align}
+Si $T\sub[1]{dp}\ge0$:
+\begin{equation}
+	\Tdp=T\sub[1]{dp}
+\end{equation}
+Si no:
+\begin{equation}
+	\Tdp=T\sub[2]{dp}
+\end{equation}
+
+
+\subsection{\funcname{Dry\_Air\_Density}[P, Tdb, W]}
+\noindent Parámetros:
+\vardef{P}presión ambiental [kPa]
+\vardef{\Tdb}temperatura de bulbo seco [\degC]
+\vardef{W}humedad específica [kg/kg dry air]
+\\Salida:
+\vardef{\Rda}densidad de aire seco [kg aire seco/$\text{m}^3$]
+\ashref, page 6.8 equation 28
+
+\begin{align}
+	R\sub{da} &= 287.055 \\
+	T &= \Tdb+273.15 \\
+	\Rda &= 1000\frac{P}{R\sub{da}T(1+1.6078W)}
+\end{align}
+
+\newcommand\tab[1]{\\\rule{#1}{0em}}
+\subsection{\funcname{psych}[P,x\sub{type},x\sub{val},y\sub{type},y\sub{val}, z\sub{type}, u\sub{type}=\text{``\texttt{Imp}''}]}
+...
+
+\end{document}
+

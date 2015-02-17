@@ -1,0 +1,28 @@
+\NeedsTeXFormat{LaTeX2e}[1994/06/01]
+\ProvidesPackage{custom}[2013/01/13 Custom Package]
+
+\RequirePackage{ifxetex}
+
+\ifxetex
+  \RequirePackage{fontspec}
+  \setmainfont[Ligatures=TeX]{Linux Libertine O}
+  \setsansfont[Ligatures=TeX]{Linux Biolinum O}
+\else
+  \RequirePackage[T1]{fontenc}
+  \RequirePackage[utf8]{inputenc}
+\fi
+
+\RequirePackage[spanish]{babel}
+
+\RequirePackage{amsmath}
+\RequirePackage{textcomp}
+\newcommand*\degC{\textdegree C}
+\newcommand*\degF{\textdegree F}
+
+\newcommand*\var[1]{\ensuremath{#1}}
+\newcommand\vardef[1]{\\\makebox[4em][r]{\ensuremath{#1={}}}}
+\newcommand*\funcname[1]{\texttt{#1(}\@funcvar}
+\newcommand*\@funcvar[1][]{\ensuremath{#1}\texttt)}
+\newcommand*\sub[2][\@empty]{\ensuremath{_{\text{#2}\ifx\@empty#1\else{,#1}\fi}}}
+
+\newcommand\ashref{\\Tomado de \emph{\textsc{Ashrae} Fundamentals handbook} (2005)}
