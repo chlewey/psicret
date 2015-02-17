@@ -184,6 +184,7 @@ class psicret:
 			assert self.__solve_dew() is not None, "Dew point is unsolvable"
 		if self.__twb is None:
 			assert self.__solve_twb() is not None, "Wet bulb temperature is unsolvable"
+		return True
 
 	def solve(self,param):
 		p = param.lower()
@@ -228,6 +229,8 @@ class psicret:
 			self.__W = 0.621945*psat/(P - psat)
 		elif self.__rh is not None:
 			self.__W = Hum_rat2(self.__tdb, self.__rh, P)
+		elif self.__h is not None:
+			self.__W = (self.__h - 1.006*self.__tdb)/(2501 + 1.86*self.__tdb)
 		return self.__W
 
 	def __solve_rh(self):
@@ -239,7 +242,7 @@ class psicret:
 		elif self.__dew is not None:
 			self.__rh = Sat_press(self.__dew)/Sat_press(self.__tdb)
 		elif self.__W is not None:
-			self.__rh = Part_press(sP, self.__W) / Sat_press(self.__tdb)
+			self.__rh = Part_press(P, self.__W) / Sat_press(self.__tdb)
 		elif self.__h is not None:
 			self.__rh = (self.__h - 1.006*self.__tdb)/(2501 + 1.86*self.__tdb)
 		return self.__rh
@@ -251,13 +254,12 @@ class psicret:
 		
 	def __solve_dew(self):
 		if self.__dew is None:
-			self.__dew = Dew_point(self.__P, self.__W)
+			self.__dew = Dew_point(self.__P/1000, self.__W)
 		return self.__dew
 
 	def __solve_twb(self):
-		P = self.__P/1000
 		if self.__twb is None:
-			self.__twb = Wet_bulb(self.__tdb, self.__rh, P)
+			self.__twb = Wet_bulb(self.__tdb, self.__rh, self.__P/1000)
 		return self.__twb
 		
 	def alpha(self):
@@ -265,14 +267,14 @@ class psicret:
 		alpha = "Psychrometric Instance\n"
 		alpha+= "Air Pressure:   %s\n" % sys.alpha_si('pressure',self.__P)
 		if sys==msys.imp:
-			elevation = sys.alpha_si('foot',self.__elevation,'%f %s.o.s.l')
-			ratio = 'lb H2O/lb dry air'
+			elevation = sys.alpha_si('foot',self.__elevation,'%f %s o.s.l.')
+			ratio = 'lb(H₂O)/lb(dry air)'
 		elif sys==msys.gsi:
-			elevation = '%f m.o.s.l'%self.__elevation
-			ratio = 'g H2O/g dry air'
+			elevation = '%f m o.s.l.'%self.__elevation
+			ratio = 'g(H₂O)/g(dry air)'
 		else:
-			elevation = '%f m.o.s.l'%self.__elevation
-			ratio = 'kg H2O/kg dry air'
+			elevation = '%f m o.s.l.'%self.__elevation
+			ratio = 'kg(H₂O)/kg(dry air)'
 		alpha+= "Elevation:      %s\n" % elevation
 		if self.__tdb is not None:
 			alpha+= "Dry bulb Temp:  %s\n" % sys.alpha_si('temp',self.__tdb)
@@ -316,7 +318,7 @@ class psicret:
 		if self.__rh is not None:
 			alpha+= "Rel. Humidity:  %f%%\n" % (100*self.__rh)
 		if self.__W is not None:
-			alpha+= "Humidity Ratio: %f kg(H2O)/kg(air)\n" % self.__W
+			alpha+= "Humidity Ratio: %f kg(H₂O)/kg(air)\n" % self.__W
 		if self.__h is not None:
 			alpha+= "Enthalpy:       %f kJ/kg\n" % self.__h
 
@@ -389,13 +391,9 @@ def Hum_rat(Tdb, Twb, P):
 			P = Ambient Pressure [kPa]
 	'''
 
-	print ">>>>>>>>>>","dry",Tdb,"wet", Twb, "press",P
 	Pws = Sat_press(Twb)
 	Ws = 0.62198 * Pws / (P - Pws)		  # Equation 23, p6.8
-	print ">>>>>>>>>>","Pws",Pws, "Ws",Ws, P-Pws
 	if Tdb >= 0:							# Equation 35, p6.9
-		print ">>>>>>>>>> (",2501,"-", 2.326*Twb, ")*Ws =",(2501 - 2.326*Twb)*Ws, "-", 1.006*(Tdb - Twb)
-		print ">>>>>>>>>>",2501, "+", 1.8*Tdb, "-", 4.18*Twb
 		result = (((2501 - 2.326*Twb)*Ws - 1.006*(Tdb - Twb))/
 				  (2501 + 1.86*Tdb - 4.186*Twb))
 	else:								   # Equation 37, p6.9
@@ -509,11 +507,8 @@ def Dew_point(P, W):
 	C18 = 0.4569
 	
 	Pw = Part_press(P, W)
-	try:
-		alpha = math.log(Pw)
-	except:
-		print P, W, Pw
-		exit()
+	assert Pw>0, "Water partial pressure %f is not positive."%Pw
+	alpha = math.log(Pw)
 	Tdp1 = C14 + C15*alpha + C16*alpha**2 + C17*alpha**3 + C18*Pw**0.1984
 	Tdp2 = 6.09 + 12.608*alpha + 0.4959*alpha**2
 	if Tdp1 >= 0:
