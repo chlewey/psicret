@@ -103,65 +103,237 @@
 
 
 import math
+import metricsys as msys
+# Adding pressure units
+msys.si.addunit('pascal','pressure',symbol='Pa')
+msys.si.addunit('kilopascal','pressure',1000.0,symbol='kPa')
+msys.imp.addunit('psi','pressure',4.448230531/0.0254**2)
+msys.cgs.addunit('bar','pressure',100000.0)
+msys.cgs.addunit('millibar','pressure',100.0,symbol="mb")
+# Adding enthalpy units
+msys.si.addunit('kJperkg','enthalpy',symbol='kJ/kg') # although the offical SI unit is J/kg, we will use kJ/kg
+msys.si.addunit('Jperkg','enthalpy',0.001,symbol='J/kg')
+msys.imp.addunit('btuperlb','enthalpy',1.055056/0.45359237,fix=17.88444444444,symbol='Btu/lb')
+msys.cgs.addunit('ergperg','enthalpy',10e-7,symbol='erg/g')
+
 
 def mean_pressure(elevation):
-	pass
+	'''Calculates the mean pressure [Pa] for a given elevation [m] above sea level
+	'''
+	try:
+		return 101325.0 * (1 - 2.25577E-5 * elevation)**5.25588
+	except TypeError:
+		return 101325.0
+
+def altitude(pressure):
+	return ( 1-(pressure/101325)**(1/5.25588) ) / 2.25577E-5
 
 class psicret:
-	def __init__(self, system='metric', **kwargs):
-		if system.lower() in ["metric","si","mks"]:
-			self.__system = "si"
-		elif system.lower() in ["imperial","imp","english"]:
-			self.__system = "imp"
-		elif system.lower() in ["cgs"]:
-			self.__system = "cgs"
+	def __init__(self, system=msys.si, **kwargs):
+		if isinstance(system,msys.metric_system):
+			sys = system
 		else:
-			self.__system = None
-		assert self.__system in ["si","cgs","imp"], "Unit system '%s' not supported" % system
+			sys = msys.get_system(system)
+		self.__system = sys
 
-		self.__elevation = kwargs.pop('elevation',0)
-		self.__pressure = kwargs.pop('pressure',None)
-		self.__tdb = kwargs.pop('tdb',None)
-		self.__twb = kwargs.pop('twb',None)
-		self.__dew = kwargs.pop('dew',None)
-		self.__rh = kwargs.pop('rh',None)
-		self.__w = kwargs.pop('ratio',None)
-		self.__h = kwargs.pop('entropy',None)
-		assert len(kwargs) == 0, "unrecognized params passed in: %s" % ",".join(kwargs.keys())
-		assert self.__tdb is not None or self.__w is not None or self.__h is not None, "At least one parameter 'tdb', 'entropy' or 'ratio' must be passed"
-		self.checkfrom(self.__system)
+		elevation = kwargs.pop('elevation',None)
+		self.__elevation = sys==msys.imp and msys.convert('foot',elevation) or elevation
 		
-	def checkfrom(self,system=None):
-		if system is None:
-			system = self.__system
-		if system=='imp':
-			self.__elevation *= 0.3048
-			if self.__pressure is not None:
-				self.__pressure *= 4.4482216152605 / 0.0254**2
-			else:
-				self.__pressure = main_pressure(self.__elevation)
-			if self.__tdb is not None:
-				self.__tdb -= 32
-				self.__tdb /= 1.8
-			if self.__twb is not None:
-				self.__twb -= 32
-				self.__twb /= 1.8
-			if self.__dew is not None:
-				self.__dew -= 32
-				self.__des /= 1.8
-			if self.__h is not None:
-				self.__h *= 1.055056/0.45359237
-				self.__h -= 17.884444444
-		elif system=='cgs':
-			self.__elevation /= 100
-			if self.__pressure is not None:
-				self.__pressure *= 100000
-			else:
-				self.__pressure = mean_pressure(self.__elevation)
-		elif system=='si':
-			if self.__pressure is None:
-				self.__pressure = mean_pressure(self.__elevation)
+		pressure = kwargs.pop('pressure',kwargs.pop('P',None))
+		if pressure is None:
+			self.__P = mean_pressure(self.__elevation)
+		else:
+			self.__P = sys.tosi('pressure',pressure)
+		if self.__elevation is None:
+			self.__elevation = altitude(self.__P)
 
+		self.__tdb = sys.tosi('temp',kwargs.pop('tdb',None))
+		self.__twb = sys.tosi('temp',kwargs.pop('twb',None))
+		self.__dew = sys.tosi('temp',kwargs.pop('dew',None))
+		self.__rh = kwargs.pop('rh',None)
+		self.__W = kwargs.pop('ratio',kwargs.pop('W',None))
+		self.__h = sys.tosi('enthalpy',kwargs.pop('enthalpy',kwargs.pop('h',None)))
+		assert len(kwargs) == 0, "unrecognized params passed in: %s" % ",".join(kwargs.keys())
+
+	def system(self):
+		return self.__system
+		
+	def solvable(self):
+		if self.__P is None: return False
+		if self.__tdb is None:
+			tdb = self.drybulb()
+			if tdb is None: return False
+		if self.__h is not None: return True
+		if self.__W is not None: return True
+		if self.__twb is not None: return True
+		if self.__dew is not None: return True
+		if self.__rh is not None: return True
+		return False
+	
+	def solveall(self):
+		if self.__tdb is None:
+			assert self.drybulb() is not None, "Dry bulb temperature is unsolvable"
+		if self.__W is None:
+			assert self.__solve_W() is not None, "Humidity ratio is unsolvable"
+			assert self.__W >= 0, "Humidity ratio is negative"
+		if self.__h is None:
+			assert self.__solve_h() is not None, "Enthalpy is unsolvable"
+		if self.__rh is None:
+			assert self.__solve_rh() is not None, "Relative humidity is unsolvable"
+		if self.__dew is None:
+			assert self.__solve_dew() is not None, "Dew point is unsolvable"
+		if self.__twb is None:
+			assert self.__solve_twb() is not None, "Wet bulb temperature is unsolvable"
+
+	def solve(self,param):
+		p = param.lower()
+		if p == 'tdb':#dry bu
+			return self.drybulb()
+		if p == 'twb':
+			return self.__solve_twb()
+		if p in ['dp','dew','tdp']:
+			return self.__solve_dew()
+		if p == 'rh':
+			return self.__solve_rh()
+		if p == 'w':
+			return self.__solve_W()
+		if p == 'h':
+			return self.__solve_h()
+		if p in ['pw','wvp']:
+			return self.__solve_pw()
+		if p == 'dsat':
+			return self.__solve_dsat()
+		if p == 'sv':
+			return self.__solve_sv()
+		if p == 'mad':
+			return self.__solve_mad()
+		if p == 's':
+			return self.__solve_s()
+
+	def drybulb(self):
+		if self.__tdb is not None: return self.__tdb
+		if self.__h is None: return None
+		if self.__W is None: return None
+		self.__tdb = (self.__h-(2501*self.__W))/(1.006+(1.86*self.__W))
+		return self.__tdb
+		
+	def __solve_W(self):
+		P = self.__P/1000
+		if self.__W is not None:
+			pass
+		elif self.__twb is not None:
+			self.__W = Hum_rat(self.__tdb, self.__twb, P)
+		elif self.__dew is not None:
+			psat = Sat_press(self.__dew)
+			self.__W = 0.621945*psat/(P - psat)
+		elif self.__rh is not None:
+			self.__W = Hum_rat2(self.__tdb, self.__rh, P)
+		return self.__W
+
+	def __solve_rh(self):
+		P = self.__P/1000
+		if self.__rh is not None:
+			pass
+		elif self.__twb is not None:
+			self.__rh = Rel_hum(self.__tdb, self.__twb, P)
+		elif self.__dew is not None:
+			self.__rh = Sat_press(self.__dew)/Sat_press(self.__tdb)
+		elif self.__W is not None:
+			self.__rh = Part_press(sP, self.__W) / Sat_press(self.__tdb)
+		elif self.__h is not None:
+			self.__rh = (self.__h - 1.006*self.__tdb)/(2501 + 1.86*self.__tdb)
+		return self.__rh
+
+	def __solve_h(self):
+		if self.__h is None:
+			self.__h = Enthalpy_Air_H2O(self.__tdb, self.__W)
+		return self.__h
+		
+	def __solve_dew(self):
+		if self.__dew is None:
+			self.__dew = Dew_point(self.__P, self.__W)
+		return self.__dew
+
+	def __solve_twb(self):
+		P = self.__P/1000
+		if self.__twb is None:
+			self.__twb = Wet_bulb(self.__tdb, self.__rh, P)
+		return self.__twb
+		
+	def alpha(self):
+		sys = self.__system
+		alpha = "Psychrometric Instance\n"
+		alpha+= "Air Pressure:   %s\n" % sys.alpha_si('pressure',self.__P)
+		if sys==msys.imp:
+			elevation = sys.alpha_si('foot',self.__elevation,'%f %s.o.s.l')
+			ratio = 'lb H2O/lb dry air'
+		elif sys==msys.gsi:
+			elevation = '%f m.o.s.l'%self.__elevation
+			ratio = 'g H2O/g dry air'
+		else:
+			elevation = '%f m.o.s.l'%self.__elevation
+			ratio = 'kg H2O/kg dry air'
+		alpha+= "Elevation:      %s\n" % elevation
+		if self.__tdb is not None:
+			alpha+= "Dry bulb Temp:  %s\n" % sys.alpha_si('temp',self.__tdb)
+		if self.__twb is not None:
+			alpha+= "Wet bulb Temp:  %s\n" % sys.alpha_si('temp',self.__twb)
+		if self.__dew is not None:
+			alpha+= "Dew point Temp: %s\n" % sys.alpha_si('temp',self.__dew)
+		if self.__rh is not None:
+			alpha+= "Rel. Humidity:  %f%%\n" % (100*self.__rh)
+		if self.__W is not None:
+			alpha+= "Humidity Ratio: %f %s\n" % (self.__W, ratio)
+		if self.__h is not None:
+			alpha+= "Enthalpy:       %s\n" % sys.alpha_si('enthalpy',self.__h)
+
+		if self.__tdb is None:
+			alpha+= "Dry bulb Temp:  not calculated\n"
+		if self.__twb is None:
+			alpha+= "Wet bulb Temp:  not calculated\n"
+		if self.__dew is None:
+			alpha+= "Dew point Temp: not calculated\n"
+		if self.__rh is None:
+			alpha+= "Rel. Humidity:  not calculated\n"
+		if self.__W is None:
+			alpha+= "Humidity Ratio: not calculated\n"
+		if self.__h is None:
+			alpha+= "Enthalpy:       not calculated\n"
+
+		return alpha
+
+	def alpha_si(self):
+		sys = self.__system
+		alpha = "Psychrometric Instance (SI)\n"
+		alpha+= "Air Pressure:   %f Pa\n" % self.__P
+		alpha+= "Elevation:      %f m o.s.l.\n" % self.__elevation
+		if self.__tdb is not None:
+			alpha+= "Dry bulb Temp:  %f°C\n" % self.__tdb
+		if self.__twb is not None:
+			alpha+= "Wet bulb Temp:  %f°C\n" % self.__twb
+		if self.__dew is not None:
+			alpha+= "Dew point Temp: %f°C\n" % self.__dew
+		if self.__rh is not None:
+			alpha+= "Rel. Humidity:  %f%%\n" % (100*self.__rh)
+		if self.__W is not None:
+			alpha+= "Humidity Ratio: %f kg(H2O)/kg(air)\n" % self.__W
+		if self.__h is not None:
+			alpha+= "Enthalpy:       %f kJ/kg\n" % self.__h
+
+		if self.__tdb is None:
+			alpha+= "Dry bulb Temp:  not calculated\n"
+		if self.__twb is None:
+			alpha+= "Wet bulb Temp:  not calculated\n"
+		if self.__dew is None:
+			alpha+= "Dew point Temp: not calculated\n"
+		if self.__rh is None:
+			alpha+= "Rel. Humidity:  not calculated\n"
+		if self.__W is None:
+			alpha+= "Humidity Ratio: not calculated\n"
+		if self.__h is None:
+			alpha+= "Enthalpy:       not calculated\n"
+
+		return alpha
 
 def Part_press(P,W):
 	
@@ -217,9 +389,13 @@ def Hum_rat(Tdb, Twb, P):
 			P = Ambient Pressure [kPa]
 	'''
 
+	print ">>>>>>>>>>","dry",Tdb,"wet", Twb, "press",P
 	Pws = Sat_press(Twb)
 	Ws = 0.62198 * Pws / (P - Pws)		  # Equation 23, p6.8
+	print ">>>>>>>>>>","Pws",Pws, "Ws",Ws, P-Pws
 	if Tdb >= 0:							# Equation 35, p6.9
+		print ">>>>>>>>>> (",2501,"-", 2.326*Twb, ")*Ws =",(2501 - 2.326*Twb)*Ws, "-", 1.006*(Tdb - Twb)
+		print ">>>>>>>>>>",2501, "+", 1.8*Tdb, "-", 4.18*Twb
 		result = (((2501 - 2.326*Twb)*Ws - 1.006*(Tdb - Twb))/
 				  (2501 + 1.86*Tdb - 4.186*Twb))
 	else:								   # Equation 37, p6.9
@@ -333,7 +509,11 @@ def Dew_point(P, W):
 	C18 = 0.4569
 	
 	Pw = Part_press(P, W)
-	alpha = math.log(Pw)
+	try:
+		alpha = math.log(Pw)
+	except:
+		print P, W, Pw
+		exit()
 	Tdp1 = C14 + C15*alpha + C16*alpha**2 + C17*alpha**3 + C18*Pw**0.1984
 	Tdp2 = 6.09 + 12.608*alpha + 0.4959*alpha**2
 	if Tdp1 >= 0:

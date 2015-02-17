@@ -1,0 +1,84 @@
+__metric_systems = set(['si','imp','cgs'])
+__metric_systems_alias = {
+	'international': 'si',
+	'metric': 'si',
+	'mks': 'si',
+	'imperial': 'imp',
+	'english': 'imp'
+	}
+__systems = {}
+def metric_system(system):
+	sys = system.lower()
+	if sys in __metric_systems_alias.keys():
+		sys = __metric_systems_alias[sys]
+	assert sys in __metric_systems, "Unit system '%s' not supported" % system
+	if sys not in __systems.keys():
+		__systems[sys] = {}
+	return sys
+def metric_system_add(system,name,unit):
+	__systems[system][name]=unit
+
+class converter:
+	def __init__(self, name, system='metric', **kwargs):
+		self.__system = metric_system(system)
+		metric_system_add(self.__system,name,self)
+
+		self.__type = kwargs.pop('type',None)
+		self.__unit = kwargs.pop('unit',"")
+		self.__si = kwargs.pop('si',"")
+		self.__offset = kwargs.pop('offset',0.0)
+		self.__factor = kwargs.pop('factor',1.0)
+		self.__fix = kwargs.pop('fix',0.0)
+		mults = kwargs.pop('mult',[])
+		try:
+			for m in mults:
+				try:
+					self.__factor *= m.__factor
+				except AttributeError:
+					self.__factor *= m
+		except TypeError:
+			try:
+				self.__factor *= mults.__factor
+			except AttributeError:
+				self.__factor *= mults
+		divs = kwargs.pop('div',[])
+		try:
+			for d in divs:
+				try:
+					self.__factor /= d.__factor
+				except AttributeError:
+					self.__factor /= d
+		except TypeError:
+			try:
+				self.__factor /= divs.__factor
+			except AttributeError:
+				self.__factor /= divs
+					
+	def system(self):
+		return self.__system
+
+	def convert(self,n):
+		"""Converts from SI to system"""
+		return (float(n)+self.__fix)/self.__factor-self.__offset
+
+	def SI(self,n):
+		"""Converts from system to SI"""
+		return (float(n)+self.__offset)*self.__factor+self.__fix
+	
+	def SI_u(self,n=None,fmt="%f %s"):
+		if n is None: return self.__si
+		return fmt%(self.SI(n),self.__si)
+
+	def unit(self,n=None,fmt="%f %s"):
+		if n is None: return self.__unit
+		return fmt%(self.convert(n),self.__unit)
+
+converter('foot','imp',type='length',factor=0.3148,unit='ft',si='m')
+converter('inch','imp',type='length',factor=0.0254,unit='in',si='m')
+converter('pound','imp',type='mass',factor=0.45359265,unit='lib',si='kg')
+converter('defF','imp',type='temperature',offset=-32.0,mult=5.0,div=9.0,unit='°F',si='°C')
+
+converter('cm','cgs',type='length',factor=0.01,unit='cm',si='m')
+converter('gram','cgs',type='mass',factor=0.001,unit='g',si='kg')
+
+converter('kelvin','si',type='temperature',offset=273.15,unit='K',si='°C')

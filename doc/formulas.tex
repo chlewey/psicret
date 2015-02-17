@@ -2,7 +2,7 @@
 \usepackage{psiform}
 \newcommand*\Tdb{\ensuremath{T\sub{db}}}
 \newcommand*\Twb{\ensuremath{T\sub{wb}}}
-\newcommand*\Tdp{\ensuremath{T\sub{dp}}}
+\newcommand*\Tdp{\ensuremath{T\sub{dew}}}
 \newcommand*\Pw{\ensuremath{P\sub{w}}}
 \newcommand*\Pws{\ensuremath{P\sub{ws}}}
 \newcommand*\RH{\ensuremath{w\sub{RH}}}
@@ -234,9 +234,94 @@ Si no:
 	\Rda &= 1000\frac{P}{R\sub{da}T(1+1.6078W)}
 \end{align}
 
-\newcommand\tab[1]{\\\rule{#1}{0em}}
-\subsection{\funcname{psych}[P,x\sub{type},x\sub{val},y\sub{type},y\sub{val}, z\sub{type}, u\sub{type}=\text{``\texttt{Imp}''}]}
-...
+\newcommand\type{\sub{type}}
+\newcommand\val{\sub{val}}
+\subsection{\funcname{psych}[P,x\type,x\val,y\type,y\val, z\type, u\type=\text{``\texttt{Imp}''}]}
+
+Comprueba que $x\type$ esté entre ``$\Tdb$'', ``$W$'' y ``$h$'' (temperatura de bulbo seco, humedad específica o entalpía).
+De lo contrario retornará un no-valor.
+
+Comprueba que $x\type$ sea diferente de $u\type$.
+De lo contrario retornará un no-valor.
+
+En caso de que el sistema ($u\type$) sea métrico (``\texttt{SI}'') lee los datos sin conversión.
+\tab Convierte la presión de pascales a kilopascales.
+\tab De acuerdo con $x\type$ guarda $x\val$ en la variable adecuada $\Tdb$, $W$ o $h$.
+\tab De acuerdo con $y\type$ guarda $y\val$ en la variable adecuada $\Tdb$, $\Twb$, $\Tdp$, $\RH$, $W$ o  $h$.
+
+En caso contrario (asume sistema imperial), lee los datos convirtiéndolos.
+\tab Convierte la presión de psi (libras por pulgada cuadrada) a kilopascales.
+\tab Si $x\type$ o $y\type$ es temperatura, guarda la respectiva variable $\Tdb$, $\Twb$ o $\Tdp$ convirtiéndo de grados farenheit a celcius.
+\tab Si $x\type$ o $y\type$ es entalpía, convierte de Btu por libra a kilojulios por kilogramo y corre el punto 0 (de 0\degF\ a 0\degC).
+\tab Si $x\type$ o $y\type$ es humedad relativa or específica, guarda la respectiva variable $\RH$ o $W$ sin cambios.
+
+Si $\Tdb$ no existe ($x\type$ y $y\type$ son entropía y humedad específica), calcula $\Tdb=\funcname{T\_drybulb\_calc}[h,W]$.
+
+Si $z\type$ es ``$\RH$'' o ``$\Twb$'', calcula $\RH$:
+\tab Si $\Twb$ fue dado: $\RH=\funcname{Rel\_hum}[\Tdb, \Twb, P]$.
+\tab Si no, pero $\Tdp$ fue dado: $\RH=\funcname{Sat\_press}[\Tdp]\div\funcname{Sat\_press}[\Tdb]$.
+\tab Si no, pero $W$ fue dado: $\RH=\funcname{Part\_press}[P, W]\div\funcname{Sat\_press}[\Tdb]$.
+\tab Si no, pero $h$ fue dado: \begin{align}
+	W &= -\frac{1.006 \Tdb - h}{2501 + 1.86 \Tdb} \\
+	\RH &= \funcname{Part\_press}[P, W]\div\funcname{Sat\_press}[\Tdb]
+\end{align}
+En caso de otro $z\type$, se busca entonces $W$:
+\tab Si $z\type$ no es ``$W$'':
+\tab[2]Si $y\type$ es ``$\Twb$'': $W=\funcname{Hum\_rat}[\Tdb, \Twb, P]$
+\tab[2]Si $y\type$ es ``$\Tdp$'': $W=0.621945\dfrac{\funcname{Sat\_press}[\Tdp]}{P-\funcname{Sat\_press}[\Tdp]}$
+\tab[2]Si $y\type$ es ``$\RH$'': $W=\funcname{Hum\_rat2}[\Tdb, \RH, P]$
+\tab[2]Si $y\type$ es ``$h$'': $W=-\dfrac{1.006 \Tdb - h}{2501 + 1.86 \Tdb}$
+\tab Si no, indica que la combinación de variables es incorrecta.
+
+En este punto se tienen: $P$, $\Tdb$ y $W$.
+
+Si $z\type$ es ``$\Tdb$'': la respuesta es $\Tdb$.
+
+Si $z\type$ es ``$\Twb$'': la respuesta es $\funcname{Wet\_bulb}[\Tdb, \RH, P]$.
+
+Si $z\type$ es ``$\Tdp$'': la respuesta es $\funcname{Dew\_point}[P, W]$.
+
+Si $z\type$ es ``$\RH$'': la respuesta es $\RH$.
+
+Si $z\type$ es ``$W$'': la respuesta es $W$.
+
+Si $z\type$ es ``$\Pw$'': la respuesta es $1000\cdot\funcname{Part\_press}[P, W]$.
+
+Si $z\type$ es ``\texttt{DSat}'' (grado de saturación): la respuesta es $W\div\funcname{Hum\_rat2}[\Tdb, 1, P]$.
+
+Si $z\type$ es ``$h$'': la respuesta es $\funcname{Enthalpy\_Air\_H2O}[\Tdb, W]$.
+
+Si $z\type$ es ``$s$'' (entropía): la respuesta es inducir un error.
+
+Si $z\type$ es ``\texttt{SV}'' (volumen específico): la respuesta es $1\div\funcname{Dry\_Air\_Density}[P, \Tdb, W]$.
+
+Si $z\type$ es ``\texttt{MAD}'' (densidad): la respuesta es $(1+W)\funcname{Dry\_Air\_Density}[P, \Tdb, W]$.
+
+\noindent Finalmente, si $y\type$ es ``\texttt{Imp}'' (sistema imperial):
+\tab Si $z\type$ es temparatura, convierte el valor de salida de \degC\ a \degF.
+\tab Si $z\type$ es presión (``$\Pw$''), convierte la salida de pascales a psi.
+\tab Si $z\type$ es entalpía, convierte de $\text{kJ}/\text{kg}$ a btu por libra y corre el 0.
+\tab si $z\type$ es volúmen específico, convierte de $\text{m}^3/\text{kg}$ a pies cúbicos por libra.
+\tab si $z\type$ es densidad, convierte $\text{kg}/\text{m}^3$ a libras por pie cubico.
+
+\subsection{\funcname{main}}
+Pide el valor de la presión atmosférica $P$.
+
+Pide el tipo de la primera variable $x\type$.
+
+Pide el valor de la primera variable $x\val$.
+
+Pide el tipo de la segunda variable $y\type$.
+
+Pide el valor de la segunda variable $y\val$.
+
+Pide el tipo de salida $z\type$.
+
+Pide el sistema de medidas ``\texttt{SI}'' o ``\texttt{Imp}'': $u\type$.
+
+Llama a \funcname{psych}[P,x\type,x\val,y\type,y\val, z\type, u\type].
+
+Imprime el resultado.
 
 \end{document}
 
